@@ -63,6 +63,18 @@ if [[ "$(uname -s)" == "Darwin" ]]; then
   }
 
   copy_and_patch_dylib "$libmtp_dylib"
+
+  # install_name_tool rewrites invalidate signatures; ad-hoc sign bundled Mach-O files.
+  if command -v codesign >/dev/null 2>&1; then
+    if [[ -f "$PUBLISH_DIR/$APP_NAME" ]]; then
+      codesign --force --sign - --timestamp=none "$PUBLISH_DIR/$APP_NAME"
+    fi
+
+    while IFS= read -r dylib; do
+      [[ -z "$dylib" ]] && continue
+      codesign --force --sign - --timestamp=none "$dylib"
+    done < <(find "$PUBLISH_DIR" -maxdepth 1 -type f -name "*.dylib" | sort)
+  fi
 fi
 
 tar -czf "$ARCHIVE_PATH" -C "$PUBLISH_DIR" .
