@@ -785,9 +785,22 @@ sealed class LibMtpBackend : IGarminTarget
                 _resolverConfigured = true;
             }
 
-            var candidates = OperatingSystem.IsMacOS()
-                ? new[] { "libmtp.dylib", "/opt/homebrew/lib/libmtp.dylib", "/usr/local/lib/libmtp.dylib" }
-                : new[] { "libmtp.so", "libmtp.so.9", "libmtp" };
+            string[] candidates;
+            if (OperatingSystem.IsMacOS())
+            {
+                candidates =
+                [
+                    Path.Combine(AppContext.BaseDirectory, "libmtp.dylib"),
+                    Path.Combine(AppContext.BaseDirectory, "lib", "libmtp.dylib"),
+                    "libmtp.dylib",
+                    "/opt/homebrew/lib/libmtp.dylib",
+                    "/usr/local/lib/libmtp.dylib"
+                ];
+            }
+            else
+            {
+                candidates = ["libmtp.so", "libmtp.so.9", "libmtp"];
+            }
 
             foreach (var candidate in candidates)
             {

@@ -1,0 +1,62 @@
+name: Build macOS release binaries
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - rid: osx-x64
+            runner: macos-13
+          - rid: osx-arm64
+            runner: macos-14
+    runs-on: ${{ matrix.runner }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 8 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Install libmtp
+        run: |
+          brew update
+          brew install libmtp
+
+      - name: Resolve version label
+        id: version
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF_TYPE}" == "tag" ]]; then
+            echo "value=${GITHUB_REF_NAME}" >> "$GITHUB_OUTPUT"
+          else
+            echo "value=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build and package (${{ matrix.rid }})
+        run: ./scripts/build-macos.sh "${{ matrix.rid }}" "${{ steps.version.outputs.value }}"
+
+      - name: Upload artifact (${{ matrix.rid }})
+        uses: actions/upload-artifact@v4
+        with:
+          name: InstallGWF-${{ steps.version.outputs.value }}-${{ matrix.rid }}
+          path: artifacts/dist/InstallGWF-${{ steps.version.outputs.value }}-${{ matrix.rid }}.tar.gz
+
+      - name: Attach archives to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/dist/InstallGWF-${{ steps.version.outputs.value }}-${{ matrix.rid }}.tar.gz
+          generate_release_notes: true
