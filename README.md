@@ -1,10 +1,16 @@
 # InstallGWF
 
-Install Garmin watch face app to your device (Windows only). Download the released zip file and unzip it to a folder, double click InstallGWF.exe to run.
+Install a Garmin watch face app to your device. Runs on **Windows** and **macOS**.
 
-You will need to have .Net Core runtime installed in your computer before you can run this.  Install it here: <https://dotnet.microsoft.com/en-us/download/dotnet/6.0/runtime>
+Build your watch face at [Garmin Watch Face Builder](https://garmin.watchfacebuilder.com/), then use this tool to install it directly to your device over USB.
 
-Connect your device via USB cable, then double click EXE file. You can enter your watch face app's url, or drag the downloaded zip file or unzipped prg file to the program, and the installer will copy the app to your device.  For your own app (not shared), you can copy and paste the link under the "Share this url".
+## Windows
+
+Download the released zip file and double click `InstallGWF.exe` to run.
+
+You will need to have .NET 8 runtime installed. Install it here: <https://dotnet.microsoft.com/en-us/download/dotnet/8.0/runtime>
+
+Connect your device via USB cable, then double click the EXE file. You can enter your watch face app's URL, or drag the downloaded zip file or unzipped `.prg` file to the program, and the installer will copy the app to your device. For your own app (not shared), copy and paste the link under "Share this url".
 
 ## macOS
 
