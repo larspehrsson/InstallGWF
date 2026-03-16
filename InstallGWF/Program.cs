@@ -29,7 +29,7 @@ static async Task RunAsync(IGarminTarget target, string[] args)
     string? filename;
     if (effectiveArgs.Length == 0)
     {
-        Console.WriteLine("Type or drag URL, zip file, prg file, or set file here, then press Enter:");
+        Diag.Info("Type or drag URL, zip file, prg file, or set file here, then press Enter:");
         filename = Console.ReadLine();
     }
     else
@@ -47,11 +47,11 @@ static async Task RunAsync(IGarminTarget target, string[] args)
 
     if (string.IsNullOrWhiteSpace(filename))
     {
-        Console.WriteLine("Usage:");
-        Console.WriteLine("  InstallGWF <file.zip>");
-        Console.WriteLine("  InstallGWF <file.prg>");
-        Console.WriteLine("  InstallGWF <file.SET>");
-        Console.WriteLine("  InstallGWF https://garmin.watchfacebuilder.com/watchface/xxxxx/");
+        Diag.Info("Usage:");
+        Diag.Info("  InstallGWF <file.zip>");
+        Diag.Info("  InstallGWF <file.prg>");
+        Diag.Info("  InstallGWF <file.SET>");
+        Diag.Info("  InstallGWF https://garmin.watchfacebuilder.com/watchface/xxxxx/");
         return;
     }
 
@@ -66,7 +66,7 @@ static async Task RunAsync(IGarminTarget target, string[] args)
 
     if (filename.StartsWith("https://", StringComparison.OrdinalIgnoreCase))
     {
-        Console.Write("Downloading...");
+        Diag.Info("Downloading...");
         if (!filename.Contains("file=app", StringComparison.OrdinalIgnoreCase))
         {
             filename += (filename.Contains('?') ? "&" : "?") + "file=app";
@@ -82,7 +82,7 @@ static async Task RunAsync(IGarminTarget target, string[] args)
         }
 
         filename = tmpZipPath;
-        Console.WriteLine("done.");
+        Diag.Info("Download complete.");
     }
 
     var ext = Path.GetExtension(filename);
@@ -90,7 +90,7 @@ static async Task RunAsync(IGarminTarget target, string[] args)
 
     if (".zip".Equals(ext, StringComparison.OrdinalIgnoreCase))
     {
-        Console.Write("Unzipping...");
+        Diag.Info("Unzipping...");
         try
         {
             using var za = ZipFile.OpenRead(filename);
@@ -109,40 +109,40 @@ static async Task RunAsync(IGarminTarget target, string[] args)
                 Diag.Debug($"Extracted '{entry.FullName}' to '{tmpPrgPath}'.");
 
                 var appName = Path.GetFileNameWithoutExtension(entry.FullName);
-                Console.Write("Copying app...");
+                Diag.Info("Copying app...");
                 target.UploadPrg(tmpPrgPath, appName);
-                Console.WriteLine($"{appName}.prg done.");
+                Diag.Info($"{appName}.prg done.");
             }
 
             if (!foundPrg)
             {
-                Console.WriteLine("No .prg file found in zip.");
+                Diag.Error("No .prg file found in zip.");
             }
         }
-        catch
+        catch (Exception ex)
         {
-            Console.WriteLine("Invalid zip file.");
+            Diag.Error($"Invalid zip file. ({ex.Message})");
         }
     }
     else if (".prg".Equals(ext, StringComparison.OrdinalIgnoreCase))
     {
         var appName = Path.GetFileNameWithoutExtension(filename);
         Diag.Info($"Uploading PRG '{filename}' as '{appName}.prg'.");
-        Console.Write("Copying app...");
+        Diag.Info("Copying app...");
         target.UploadPrg(filename, appName);
-        Console.WriteLine($"{appName}.prg done.");
+        Diag.Info($"{appName}.prg done.");
     }
     else if (".set".Equals(ext, StringComparison.OrdinalIgnoreCase))
     {
         var settingName = Path.GetFileNameWithoutExtension(filename);
         Diag.Info($"Uploading SET '{filename}' as '{settingName}.SET'.");
-        Console.Write("Copying setting file...");
+        Diag.Info("Copying setting file...");
         target.UploadSet(filename, settingName);
-        Console.WriteLine($"{settingName}.SET done.");
+        Diag.Info($"{settingName}.SET done.");
     }
     else
     {
-        Console.WriteLine("Invalid input file. Supported: .zip, .prg, .SET, or https:// URL.");
+        Diag.Error("Invalid input file. Supported: .zip, .prg, .SET, or https:// URL.");
         Diag.Info("Tip: for dotnet run, pass app args after '--': dotnet run --project InstallGWF.csproj -- ~/Downloads/file.prg");
     }
 }
@@ -181,26 +181,26 @@ IGarminTarget? SelectWindowsDevice()
         var list = devices.ToList();
         if (list.Count == 0)
         {
-            Console.WriteLine("No Garmin device found. Plug in your Garmin device.");
-            Console.WriteLine("Press Enter to refresh or Ctrl+C to exit.");
+            Diag.Info("No Garmin device found. Plug in your Garmin device.");
+            Diag.Info("Press Enter to refresh or Ctrl+C to exit.");
             Console.ReadLine();
             devices = MediaDevice.GetDevices();
             continue;
         }
 
-        Console.WriteLine("Available devices:");
+        Diag.Info("Available devices:");
         for (var i = 0; i < list.Count; i++)
         {
-            Console.WriteLine($"{i + 1}: {list[i].FriendlyName}");
+            Diag.Info($"{i + 1}: {list[i].FriendlyName}");
         }
 
         if (list.Count == 1 && "Garmin".Equals(list[0].Manufacturer, StringComparison.OrdinalIgnoreCase))
         {
-            Console.WriteLine($"Auto selected: {list[0].FriendlyName}");
+            Diag.Info($"Auto selected: {list[0].FriendlyName}");
             return new WindowsGarminTarget(list[0]);
         }
 
-        Console.WriteLine("Enter number to select the device (or press Enter to refresh):");
+        Diag.Info("Enter number to select the device (or press Enter to refresh):");
         var sel = Console.ReadLine();
         if (int.TryParse(sel, out var iSel) && iSel > 0 && iSel <= list.Count)
         {
@@ -221,7 +221,7 @@ IGarminTarget? TrySelectLibMtpDevice()
     var backend = LibMtpBackend.TryCreate();
     if (backend is null)
     {
-        Console.WriteLine("libmtp not available (install with: brew install libmtp). Falling back to mounted volume mode.");
+        Diag.Info("libmtp not available (install with: brew install libmtp). Falling back to mounted volume mode.");
         return null;
     }
 
@@ -235,7 +235,7 @@ IGarminTarget? TrySelectLibMtpDevice()
             return null;
         }
 
-        Console.WriteLine("Using libmtp backend.");
+        Diag.Info("Using libmtp backend.");
         return backend;
     }
     catch
@@ -262,9 +262,9 @@ IGarminTarget? SelectMountedVolume()
         var candidates = FindGarminMounts();
         if (candidates.Count == 0)
         {
-            Console.WriteLine("No mounted Garmin volume found.");
-            Console.WriteLine("On macOS, ensure your device appears under /Volumes and contains a GARMIN folder.");
-            Console.WriteLine("Enter a Garmin mount path manually, press Enter to refresh, or Ctrl+C to exit:");
+            Diag.Info("No mounted Garmin volume found.");
+            Diag.Info("On macOS, ensure your device appears under /Volumes and contains a GARMIN folder.");
+            Diag.Info("Enter a Garmin mount path manually, press Enter to refresh, or Ctrl+C to exit:");
             var input = Console.ReadLine();
 
             if (!string.IsNullOrWhiteSpace(input))
@@ -274,7 +274,7 @@ IGarminTarget? SelectMountedVolume()
                     return new MountedGarminTarget(input);
                 }
 
-                Console.WriteLine("That path is not a valid Garmin mount.");
+                Diag.Error("That path is not a valid Garmin mount.");
             }
 
             continue;
@@ -282,17 +282,17 @@ IGarminTarget? SelectMountedVolume()
 
         if (candidates.Count == 1)
         {
-            Console.WriteLine($"Using mounted Garmin volume: {candidates[0]}");
+            Diag.Info($"Using mounted Garmin volume: {candidates[0]}");
             return new MountedGarminTarget(candidates[0]);
         }
 
-        Console.WriteLine("Available Garmin mounts:");
+        Diag.Info("Available Garmin mounts:");
         for (var i = 0; i < candidates.Count; i++)
         {
-            Console.WriteLine($"{i + 1}: {candidates[i]}");
+            Diag.Info($"{i + 1}: {candidates[i]}");
         }
 
-        Console.WriteLine("Enter number to select mount (or press Enter to refresh):");
+        Diag.Info("Enter number to select mount (or press Enter to refresh):");
         var sel = Console.ReadLine();
         if (int.TryParse(sel, out var iSel) && iSel > 0 && iSel <= candidates.Count)
         {
@@ -934,6 +934,9 @@ sealed class LibMtpBackend : IGarminTarget
             }
             finally
             {
+                // Flush all C stdio buffers while fds still point to /dev/null,
+                // so buffered libmtp output doesn't leak out after fd restore.
+                _ = fflush(IntPtr.Zero);
                 _ = dup2(savedStdout, 1);
                 _ = dup2(savedStderr, 2);
                 _ = close(savedStdout);
@@ -942,6 +945,9 @@ sealed class LibMtpBackend : IGarminTarget
         }
 
         private const int O_WRONLY = 1;
+
+        [DllImport("libc", CallingConvention = CallingConvention.Cdecl)]
+        private static extern int fflush(IntPtr stream); // IntPtr.Zero flushes all C stdio streams
 
         [DllImport("libc", CallingConvention = CallingConvention.Cdecl)]
         private static extern int dup(int oldfd);
@@ -987,6 +993,14 @@ static class Diag
     public static void Info(string message)
     {
         Console.WriteLine($"[info] {message}");
+    }
+
+    public static void Error(string message)
+    {
+        var prev = Console.ForegroundColor;
+        Console.ForegroundColor = ConsoleColor.Red;
+        Console.Error.WriteLine($"[error] {message}");
+        Console.ForegroundColor = prev;
     }
 
     public static void Debug(string message)
